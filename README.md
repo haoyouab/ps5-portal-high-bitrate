@@ -1,5 +1,11 @@
 # PS5 Portal High Bitrate
 
+> **Fork note:** this fork adds [`deploy/docker-nat/`](deploy/docker-nat/README.md) — the bidirectional NAT relay
+> (`raspberry-pi/linux_native.py`) packaged as a Docker **macvlan** container with a systemd service and an
+> interactive `portalctl` manager (guided `setup`, arrow-key profile switching, live `monitor`, bash completion).
+> It runs on an existing Linux/Docker host without touching the host's IP forwarding or other containers.
+> It also patches a relay crash on transient `EAGAIN` from the TX socket. Docs are in Chinese.
+
 ## Update — October 21, 2026
 
 The Raspberry Pi 4 Model B setup is now working on my own system! With my Mac switched off, I tested smooth gameplay through the Ethernet-connected Pi using the 100 Mbps profile. I also successfully tested automatic startup and a fresh Portal connection after rebooting the Pi. The code and setup instructions are on GitHub.

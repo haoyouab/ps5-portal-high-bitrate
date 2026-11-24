@@ -1,0 +1,44 @@
+# Bidirectional NAT relay (raspberry-pi/linux_native.py) on a macvlan. Local deployment.
+# Manage it with ./portalctl.sh (see README.md); the systemd unit runs 'docker compose up -d'.
+name: portal-nat
+services:
+  relay:
+    build:
+      context: ../..
+      dockerfile: deploy/docker-nat/Dockerfile
+    image: portal-relay-nat:local
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 45s
+    cap_add: [NET_ADMIN, NET_RAW]   # nft table + ethtool + raw sockets, all inside this netns
+    sysctls:
+      net.ipv4.ip_forward: "0"
+      net.ipv4.conf.all.forwarding: "0"
+      net.ipv4.conf.default.forwarding: "0"
+    environment:
+      PORTAL_PROFILE: ${PORTAL_PROFILE:-100}
+    mac_address: ${RELAY_MAC:?set RELAY_MAC in .env}   # fixed: baseline receipt is bound to it
+    tmpfs:
+      - /run
+    healthcheck:
+      test: ["CMD", "/opt/portal-relay-pi4/.venv/bin/python", "-c", "import json,datetime as d;s=json.load(open('/run/portal-linux-native/status.json'));a=(d.datetime.now(d.timezone.utc)-d.datetime.fromisoformat(s['time'])).total_seconds();raise SystemExit(0 if s['state']=='running' and a<15 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      start_interval: 2s
+      retries: 3
+    volumes:
+      - ./data/config:/etc/portal-relay-pi4:ro
+      - ./data/state:/var/lib/portal-linux-native
+    networks:
+      lan:
+        ipv4_address: ${RELAY_IP:?set RELAY_IP in .env}
+networks:
+  lan:
+    driver: macvlan
+    driver_opts:
+      parent: ${LAN_PARENT:?set LAN_PARENT in .env}
+    ipam:
+      config:
+        - subnet: ${LAN_SUBNET:?set LAN_SUBNET in .env}
+          gateway: ${LAN_GATEWAY:?set LAN_GATEWAY in .env}
